@@ -101,6 +101,15 @@ jobs:
           test -n "$db_url"
           DB_URL="$db_url" bash supabase/tests/runtime_payment_idempotency.sh
 
+      - name: Exécuter les tests runtime d’isolation multi-écoles
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase status -o env > /tmp/supabase-local.env
+          db_url="$(grep '^DB_URL=' /tmp/supabase-local.env | head -n1 | cut -d= -f2- | tr -d '"')"
+          test -n "$db_url"
+          DB_URL="$db_url" bash supabase/tests/runtime_tenant_isolation.sh
+
       - name: Publier la migration générée
         uses: actions/upload-artifact@v6
         with:
