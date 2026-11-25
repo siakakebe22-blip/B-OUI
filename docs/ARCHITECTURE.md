@@ -29,19 +29,20 @@ Le frontend ne reçoit jamais la clé service-role ni les secrets du prestataire
 3. La réservation reçoit une échéance et une clé d'idempotence.
 4. L'API crée une demande de paiement auprès du prestataire.
 5. Une notification serveur est authentifiée, vérifiée, dédupliquée et rapprochée du montant, de la devise et de la référence attendus.
-6. Seule une confirmation authentique fait passer le paiement à confirmé.
-7. L'émission des billets est atomique et idempotente.
-8. Le QR code contient un jeton aléatoire opaque ; seule son empreinte est conservée en base.
-9. Le contrôle consomme le billet atomiquement. Une deuxième validation est refusée.
+6. La page de retour du navigateur n'est jamais une preuve de paiement.
+7. Après vérification cryptographique et métier du webhook, le backend appelle la fonction SQL privée de confirmation. La fonction verrouille réservation, paiement et quotas dans un ordre stable.
+8. Une transaction confirme le paiement, convertit le quota réservé en quota vendu et émet exactement un billet par unité achetée. Une notification répétée du même paiement ne crée aucun billet supplémentaire.
+9. Un paiement reçu après expiration est mis en revue manuelle ; il ne réactive pas automatiquement une réservation expirée.
+10. L'identifiant de transaction du prestataire est unique par prestataire. Les événements webhook sont journalisés et traités de manière idempotente.
 
-La page de retour du navigateur n'est jamais une preuve de paiement.
-
-## Récupération d'un billet
+## QR code et récupération
+- Le QR contient un jeton opaque signé (HMAC) par le backend ; le secret n'est jamais dans PostgreSQL ni dans le frontend.
+- La base conserve uniquement l'empreinte SHA-256 du jeton et la version de clé utilisée. Le backend peut recalculer le même jeton pour le même ticket, y compris après rotation contrôlée des clés.
+- La récupération restitue le billet original et le même QR code ; elle ne crée aucun billet.
 - Depuis le compte : accès aux billets déjà émis.
 - Sans compte : référence de réservation et canal de contact vérifié par OTP.
 - Réponse générique pour éviter de révéler l'existence d'une réservation.
 - Expiration des OTP, limitation des tentatives et journalisation.
-- La récupération restitue le billet original et le même QR code ; elle ne crée aucun billet.
 
 ## Règles financières
 - Montants stockés en unités entières de GNF.
@@ -72,8 +73,8 @@ La page de retour du navigateur n'est jamais une preuve de paiement.
 3. Authentification et demandes d'accès écoles.
 4. Événements, approbations et tarifs.
 5. Réservations transactionnelles et expiration.
-6. Paiement Orange Money et rapprochement.
-7. Émission, récupération et scan des billets.
+6. Confirmation de paiement vérifiée et émission atomique.
+7. Adaptateur Orange Money réel, récupération et scan des billets.
 8. Commissions, remboursements, rapports et audit.
 9. Tests de charge, sécurité, sauvegarde et restauration.
 
