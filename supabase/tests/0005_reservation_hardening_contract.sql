@@ -20,6 +20,11 @@ begin
     raise exception 'Le contrôle verrouillé de l’école vérifiée est absent';
   end if;
 
+  if position('hashtextextended(p_idempotency_key::text, 0)' in v_definition) = 0
+     or position('v_user_id::text ||' in v_definition) > 0 then
+    raise exception 'Le verrou d’idempotence doit être global à la clé unique';
+  end if;
+
   if position('IDEMPOTENCY_KEY_CONFLICT' in v_definition) = 0
      or position('v_existing_ticket_type_id' in v_definition) = 0
      or position('v_existing_quantity' in v_definition) = 0
