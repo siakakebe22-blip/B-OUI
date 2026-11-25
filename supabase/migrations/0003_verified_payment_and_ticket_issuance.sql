@@ -78,7 +78,7 @@ begin
 
   -- Une notification répétée du même paiement est un succès sans nouvelle émission.
   if v_payment.status = 'confirmed' then
-    if v_payment.provider_transaction_id <> p_provider_transaction_id
+    if v_payment.provider_transaction_id is distinct from p_provider_transaction_id
        or v_reservation.status <> 'paid' then
       raise exception 'CONFIRMED_PAYMENT_CONFLICT' using errcode = '23505';
     end if;
@@ -229,6 +229,20 @@ begin
   if v_inserted <> v_expected then
     raise exception 'TICKET_ISSUANCE_INCOMPLETE' using errcode = 'P0001';
   end if;
+
+  insert into public.audit_logs (
+    actor_user_id, action, entity_type, entity_id, metadata_redacted
+  ) values (
+    null, 'payment.confirmed_and_tickets_issued', 'reservation', v_reservation.id,
+    jsonb_build_object(
+      'payment_id', v_payment.id,
+      'provider', v_payment.provider,
+      'provider_transaction_id', p_provider_transaction_id,
+      'amount_gnf', p_amount_gnf,
+      'currency', p_currency,
+      'tickets_issued', v_inserted
+    )
+  );
 
   return query select v_payment.id, v_reservation.id, false, v_inserted;
 end;
