@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
-: "\${DB_URL:?DB_URL doit pointer vers PostgreSQL local}"
+: "$DB_URL"
+test -n "$DB_URL"
 psql "$DB_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
 insert into auth.users (id, aud, role, email, encrypted_password, email_confirmed_at, created_at, updated_at)
 values
