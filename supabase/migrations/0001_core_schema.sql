@@ -129,6 +129,10 @@ create table public.reservations (
   status public.reservation_status not null default 'pending_payment',
   currency char(3) not null default 'GNF' check (currency = 'GNF'),
   total_amount_gnf bigint not null check (total_amount_gnf >= 0),
+  commission_rule_id_snapshot uuid,
+  commission_rate_basis_points_snapshot integer not null default 0 check (commission_rate_basis_points_snapshot between 0 and 10000),
+  commission_fixed_fee_gnf_snapshot bigint not null default 0 check (commission_fixed_fee_gnf_snapshot >= 0),
+  platform_fee_gnf_snapshot bigint not null default 0 check (platform_fee_gnf_snapshot >= 0),
   idempotency_key uuid not null unique,
   expires_at timestamptz not null,
   paid_at timestamptz,
@@ -202,7 +206,7 @@ create unique index ticket_scans_one_accepted_entry
 create table public.commission_rules (
   id uuid primary key default gen_random_uuid(),
   school_id uuid references public.schools(id) on delete cascade,
-  event_id uuid references public.events(id) on delete cascade,
+  event_id uuid,
   rate_basis_points integer not null check (rate_basis_points between 0 and 10000),
   fixed_fee_gnf bigint not null default 0 check (fixed_fee_gnf >= 0),
   active boolean not null default true,
@@ -210,7 +214,8 @@ create table public.commission_rules (
   valid_until timestamptz,
   created_at timestamptz not null default now(),
   check (valid_until is null or valid_until > valid_from),
-  check (event_id is null or school_id is not null)
+  check (event_id is null or school_id is not null),
+  foreign key (event_id, school_id) references public.events(id, school_id) on delete cascade
 );
 
 create table public.refunds (
