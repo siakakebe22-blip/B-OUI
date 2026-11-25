@@ -88,3 +88,6 @@ Le frontend ne reçoit jamais la clé service-role ni les secrets du prestataire
 
 ## Hors périmètre de cette première livraison
 Aucun compte marchand Orange Money, aucun projet Supabase, aucune base distante, aucune clé API, aucun déploiement Cloudflare et aucune donnée réelle ne sont créés ou modifiés. Les noms de champs, signatures, statuts et mécanismes de notification Orange Money Guinée restent à confirmer dans la documentation officielle du produit marchand concerné.
+
+## Adaptateur Orange Money Guinée — contrat préalable
+Le contrat interne, les exigences de sécurité, la liste des informations à obtenir auprès d'Orange Guinée et la matrice de recette sont décrits dans `docs/ORANGE_MONEY_GN_INTEGRATION_CONTRACT.md`. La documentation publique Orange confirme l'offre Web Payment / M Payment en Guinée et les exigences de marchand enregistré/KYA, mais ne suffit pas à définir les endpoints et webhooks propres au contrat marchand guinéen. Aucun endpoint d'un autre pays ne doit être réutilisé sans confirmation écrite. L'adaptateur réseau concret reste bloqué jusqu'à réception de cette documentation.
