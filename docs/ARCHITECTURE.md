@@ -28,12 +28,19 @@ Le frontend ne reçoit jamais la clé service-role ni les secrets du prestataire
 2. Une transaction verrouille le type de billet, vérifie le quota et réserve les quantités.
 3. La réservation reçoit une échéance et une clé d'idempotence.
 4. L'API crée une demande de paiement auprès du prestataire.
-5. Une notification serveur est authentifiée, vérifiée, dédupliquée et rapprochée du montant, de la devise et de la référence attendus.
-6. La page de retour du navigateur n'est jamais une preuve de paiement.
-7. Après vérification cryptographique et métier du webhook, le backend appelle la fonction SQL privée de confirmation. La fonction verrouille réservation, paiement et quotas dans un ordre stable.
-8. Une transaction confirme le paiement, convertit le quota réservé en quota vendu et émet exactement un billet par unité achetée. Une notification répétée du même paiement ne crée aucun billet supplémentaire.
-9. Un paiement reçu après expiration est mis en revue manuelle ; il ne réactive pas automatiquement une réservation expirée.
-10. L'identifiant de transaction du prestataire est unique par prestataire. Les événements webhook sont journalisés et traités de manière idempotente.
+5. Chaque notification entrante est authentifiée par le backend (signature, horodatage, anti-rejeu), puis inscrite dans une inbox privée avant traitement métier.
+6. L'inbox déduplique les notifications avec une clé stable construite selon le contrat officiel du prestataire. Elle conserve l'empreinte SHA-256 et une charge utile expurgée, jamais le corps brut ni les secrets.
+7. Le backend rapproche événement, transaction, référence, montant, devise et compte marchand. Le retour navigateur n'est jamais une preuve de paiement.
+8. Après vérification cryptographique et métier, le backend appelle la fonction SQL privée de confirmation. La fonction verrouille réservation, paiement et quotas dans un ordre stable.
+9. Une transaction confirme le paiement, convertit le quota réservé en quota vendu et émet exactement un billet par unité achetée. Une notification répétée ne crée aucun billet supplémentaire.
+10. Un paiement reçu après expiration est mis en revue manuelle ; il ne réactive pas automatiquement une réservation expirée.
+11. Les événements webhook sont suivis par statut, nombre de tentatives, horodatages et code de résultat non sensible.
+
+## Expiration et concurrence
+- L'expiration verrouille les réservations dans un ordre stable, puis tous les types de billets concernés par UUID croissant.
+- Les quantités à libérer sont agrégées et contrôlées avant mise à jour. Un quota incohérent provoque un rollback explicite au lieu d'être ramené silencieusement à zéro.
+- La confirmation verrouille réservation, paiement, puis types de billets triés par UUID.
+- Ces règles réduisent les risques de deadlock, mais doivent encore être validées par des tests concurrents réels sur PostgreSQL.
 
 ## QR code et récupération
 - Le QR contient un jeton opaque signé (HMAC) par le backend ; le secret n'est jamais dans PostgreSQL ni dans le frontend.
@@ -74,9 +81,10 @@ Le frontend ne reçoit jamais la clé service-role ni les secrets du prestataire
 4. Événements, approbations et tarifs.
 5. Réservations transactionnelles et expiration.
 6. Confirmation de paiement vérifiée et émission atomique.
-7. Adaptateur Orange Money réel, récupération et scan des billets.
-8. Commissions, remboursements, rapports et audit.
-9. Tests de charge, sécurité, sauvegarde et restauration.
+7. Inbox webhook, déduplication et traitement idempotent.
+8. Adaptateur Orange Money réel après obtention de la documentation officielle Guinée et d'un environnement sandbox.
+9. Récupération et scan des billets.
+10. Commissions, remboursements, rapports, audit, charge, sécurité, sauvegarde et restauration.
 
 ## Hors périmètre de cette première livraison
-Aucun compte marchand Orange Money, aucun projet Supabase, aucune base distante, aucune clé API, aucun déploiement Cloudflare et aucune donnée réelle ne sont créés ou modifiés.
+Aucun compte marchand Orange Money, aucun projet Supabase, aucune base distante, aucune clé API, aucun déploiement Cloudflare et aucune donnée réelle ne sont créés ou modifiés. Les noms de champs, signatures, statuts et mécanismes de notification Orange Money Guinée restent à confirmer dans la documentation officielle du produit marchand concerné.
