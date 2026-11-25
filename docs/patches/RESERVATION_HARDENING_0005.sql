@@ -1,7 +1,6 @@
--- B-OUI — Proposition de durcissement de create_reservation
--- Brouillon SQL préparé hors migration : à intégrer dans une migration créée par
--- `supabase migration new ...` après revue et test sur une base locale isolée.
--- Aucun SQL n'a été exécuté sur une base distante.
+-- B-OUI — Migration 0005 : durcissement de create_reservation
+-- Validée sur PostgreSQL local : contrats SQL 0001–0005 et tests runtime de concurrence.
+-- Cette migration n'a pas été appliquée à une base distante.
 
 begin;
 
