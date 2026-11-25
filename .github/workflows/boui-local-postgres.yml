@@ -32,16 +32,26 @@ jobs:
             supabase init
           fi
 
-      - name: Créer la migration avec le CLI officiel
+      - name: Sélectionner la migration de durcissement
         id: migration
         shell: bash
         run: |
-          supabase migration new reservation_hardening
-          migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_reservation_hardening.sql' -print -quit)"
-          test -n "$migration_file"
-          cp docs/patches/RESERVATION_HARDENING_0005.sql "$migration_file"
+          set -euo pipefail
+          migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_reservation_hardening.sql' -print | sort | tail -n1)"
+          if [ -z "$migration_file" ]; then
+            supabase migration new reservation_hardening
+            migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_reservation_hardening.sql' -print | sort | tail -n1)"
+            test -n "$migration_file"
+            cp docs/patches/RESERVATION_HARDENING_0005.sql "$migration_file"
+            echo "Migration temporaire créée par le CLI officiel : $migration_file"
+          else
+            cmp -s docs/patches/RESERVATION_HARDENING_0005.sql "$migration_file" || {
+              echo "ERREUR : le patch diffère de la migration versionnée. Créer une nouvelle migration, ne pas réécrire l'historique."
+              exit 1
+            }
+            echo "Migration versionnée vérifiée : $migration_file"
+          fi
           echo "path=$migration_file" >> "$GITHUB_OUTPUT"
-          echo "Migration générée par supabase migration new : $migration_file"
 
       - name: Démarrer la pile Supabase locale
         run: supabase start
@@ -82,7 +92,7 @@ jobs:
           DB_URL="$db_url" bash supabase/tests/runtime_reservation_concurrency.sh
 
       - name: Publier la migration générée
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: boui-reservation-hardening-migration
           path: ${{ steps.migration.outputs.path }}
