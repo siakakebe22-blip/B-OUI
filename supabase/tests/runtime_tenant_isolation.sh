@@ -55,17 +55,6 @@ reserve 11000000-0000-4000-8000-000000000001 41000000-0000-4000-8000-00000000000
 reserve 11000000-0000-4000-8000-000000000002 41000000-0000-4000-8000-000000000002 51000000-0000-4000-8000-000000000002 >/dev/null
 
 # L'acheteur A ne doit voir aucune réservation, ligne, paiement ou billet de B.
-for relation in reservations reservation_items payments tickets; do
-  count="$(psql "$DB_URL" -X -v ON_ERROR_STOP=1 -Atq <<SQL
-begin;
-set local role authenticated;
-select set_config('request.jwt.claim.sub','11000000-0000-4000-8000-000000000001',true);
-select set_config('request.jwt.claims','{"sub":"11000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
-select count(*) from public.$relation t
-where
-SQL
-)"
-done
 # Vérifications ciblées via identifiants de réservation récupérés depuis les clés.
 reservation_b="$(psql "$DB_URL" -X -Atq -c "select id from public.reservations where idempotency_key='51000000-0000-4000-8000-000000000002'")"
 reservation_a="$(psql "$DB_URL" -X -Atq -c "select id from public.reservations where idempotency_key='51000000-0000-4000-8000-000000000001'")"
