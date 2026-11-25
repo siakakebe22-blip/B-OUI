@@ -61,13 +61,20 @@ reservation_a="$(psql "$DB_URL" -X -Atq -c "select id from public.reservations w
 test -n "$reservation_a" && test -n "$reservation_b"
 
 for relation in reservations reservation_items payments tickets; do
+  # La table reservations porte l'identifiant dans "id" ; les tables enfants
+  # utilisent "reservation_id".
+  if [[ "$relation" = "reservations" ]]; then
+    reservation_column="id"
+  else
+    reservation_column="reservation_id"
+  fi
   visible="$(psql "$DB_URL" -X -v ON_ERROR_STOP=1 -Atq <<SQL
 begin;
 set local role authenticated;
 select set_config('request.jwt.claim.sub','11000000-0000-4000-8000-000000000001',true);
 select set_config('request.jwt.claims','{"sub":"11000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
 select count(*) from public.$relation t
-where t.reservation_id = '$reservation_b';
+where t.$reservation_column = '$reservation_b';
 rollback;
 SQL
 )"
