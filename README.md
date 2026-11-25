@@ -20,3 +20,5 @@ La migration 0004 ajoute le stockage dédupliqué des notifications et corrige l
 L'adaptateur Orange Money Guinée reste à concevoir à partir de la documentation officielle du produit marchand en Guinée et de son environnement sandbox. Aucun endpoint, en-tête, format de signature ou statut fournisseur n'est supposé dans ce dépôt. Les fonctions de scan et de récupération, les tests d'intégration RLS multi-utilisateurs, de webhook et de concurrence restent à réaliser.
 
 Aucun projet cloud, secret, compte marchand, paiement réel ou donnée réelle n'est créé ici.
+
+- `docs/ORANGE_MONEY_GN_INTEGRATION_CONTRACT.md` : contrat interne fournisseur-neutre, éléments officiels confirmés, questions à Orange Guinée, pipeline webhook et matrice de tests sandbox. Aucun endpoint ni mécanisme cryptographique fournisseur n'est supposé.
