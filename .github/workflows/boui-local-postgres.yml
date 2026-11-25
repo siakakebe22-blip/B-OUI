@@ -76,7 +76,8 @@ jobs:
             supabase/tests/0002_reservation_security.sql \
             supabase/tests/0003_payment_issuance_security.sql \
             supabase/tests/0004_webhook_inbox_security.sql \
-            supabase/tests/0005_reservation_hardening_contract.sql
+            supabase/tests/0005_reservation_hardening_contract.sql \
+            supabase/tests/0006_school_privacy_audit_contract.sql
           do
             echo "=== $test_file ==="
             psql "$db_url" -v ON_ERROR_STOP=1 -f "$test_file"
