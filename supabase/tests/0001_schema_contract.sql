@@ -58,12 +58,20 @@ begin
     raise exception 'Index anti-double-entree absent';
   end if;
 
+  -- Le schéma déclare les contrôles de quota comme CHECK de table.
+  -- PostgreSQL attribue un nom automatique à ce CHECK ; ne pas dépendre
+  -- d'un nom précis, vérifier la définition réelle de la contrainte.
   if not exists (
-    select 1 from pg_constraint
-    where conrelid='public.ticket_types'::regclass
-      and conname='ticket_types_quantity_reserved_quantity_sold_check'
+    select 1
+    from pg_constraint c
+    where c.conrelid = 'public.ticket_types'::regclass
+      and c.contype = 'c'
+      and position('quantity_reserved' in pg_get_constraintdef(c.oid)) > 0
+      and position('quantity_sold' in pg_get_constraintdef(c.oid)) > 0
+      and position('quantity_total' in pg_get_constraintdef(c.oid)) > 0
+      and position('<=' in pg_get_constraintdef(c.oid)) > 0
   ) then
-    raise exception 'Contrainte de quota absente';
+    raise exception 'Contrainte de quota (réservé + vendu <= total) absente';
   end if;
 end $$;
 
