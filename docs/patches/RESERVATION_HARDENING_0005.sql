@@ -49,9 +49,11 @@ begin
     raise exception 'HOLD_DURATION_OUT_OF_RANGE' using errcode = '22023';
   end if;
 
-  -- Sérialise les répétitions de la même demande pour ce compte.
+  -- La clé est globalement unique dans reservations : le verrou doit donc
+  -- être global à cette clé, pas limité au compte. Cela sérialise aussi deux
+  -- comptes qui présenteraient simultanément la même clé.
   perform pg_advisory_xact_lock(
-    hashtextextended(v_user_id::text || ':' || p_idempotency_key::text, 0)
+    hashtextextended(p_idempotency_key::text, 0)
   );
 
   select r.* into v_reservation
