@@ -67,6 +67,12 @@ Deno.serve(async (request: Request) => {
     return json(400, { error: "INVALID_REQUEST" }, origin, allowed);
   }
 
+  if (Object.keys(body).some((key) =>
+    !["items", "buyer_name", "buyer_phone", "buyer_email", "turnstile_token"].includes(key)
+  )) {
+    return json(400, { error: "INVALID_CHECKOUT_INPUT" }, origin, allowed);
+  }
+
   const idempotencyKey = request.headers.get("x-idempotency-key");
   const name = cleanText(body.buyer_name, 160);
   const phone = cleanText(body.buyer_phone, 16);
