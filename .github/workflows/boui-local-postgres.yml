@@ -3,6 +3,7 @@ name: B-OUI — tests PostgreSQL locaux
 on:
   push:
     branches:
+      - main
       - feature/fondations-techniques-v1
       - feature/webhook-inbox-lifecycle-v1
     paths:
