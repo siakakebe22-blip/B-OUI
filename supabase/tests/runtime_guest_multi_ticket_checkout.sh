@@ -73,7 +73,7 @@ from public.create_checkout_reservation(
 commit;
 SQL
 )"
-[[ "$replay" = "true" ]] || { echo "ÉCHEC : rejeu idempotent non reconnu"; exit 1; }
+[[ "$replay" = "t" ]] || { echo "ÉCHEC : rejeu idempotent non reconnu"; exit 1; }
 reserved="$(psql "$DB_URL" -X -Atq -c "select quantity_reserved from public.ticket_types where id='42000000-0000-4000-8000-000000000001'")"
 [[ "$reserved" = "2" ]] || { echo "ÉCHEC : le rejeu a modifié le quota ($reserved)"; exit 1; }
 echo "OK — idempotence et absence de double réservation."
