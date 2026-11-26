@@ -165,18 +165,30 @@ begin
       raise exception 'SALES_CLOSED' using errcode = 'P0001';
     end if;
 
-    if v_event.id is null then
-      select e.* into v_event
-      from public.events e
-      where e.id = v_ticket.event_id
-      for share;
-      if not found then
-        raise exception 'EVENT_NOT_AVAILABLE' using errcode = 'P0001';
-      end if;
-    elsif v_event.id <> v_ticket.event_id then
-      raise exception 'ONE_EVENT_PER_CHECKOUT' using errcode = '22023';
-    end if;
   end loop;
+
+  -- Toutes les catégories sont désormais verrouillées. On verrouille ensuite
+  -- l'événement, puis l'école : même ordre que le parcours de réservation historique.
+  select e.* into v_event
+  from public.events e
+  join public.ticket_types first_ticket
+    on first_ticket.event_id = e.id
+  where first_ticket.id = (v_normalized_items->0->>'ticket_type_id')::uuid
+  for share of e;
+
+  if not found then
+    raise exception 'EVENT_NOT_AVAILABLE' using errcode = 'P0001';
+  end if;
+
+  if exists (
+    select 1
+    from jsonb_array_elements(v_normalized_items) as x(item)
+    join public.ticket_types tt
+      on tt.id = (x.item->>'ticket_type_id')::uuid
+    where tt.event_id <> v_event.id
+  ) then
+    raise exception 'ONE_EVENT_PER_CHECKOUT' using errcode = '22023';
+  end if;
 
   if v_event.status <> 'published' then
     raise exception 'EVENT_NOT_AVAILABLE' using errcode = 'P0001';
