@@ -77,7 +77,8 @@ jobs:
             supabase/tests/0003_payment_issuance_security.sql \
             supabase/tests/0004_webhook_inbox_security.sql \
             supabase/tests/0005_reservation_hardening_contract.sql \
-            supabase/tests/0006_school_privacy_audit_contract.sql
+            supabase/tests/0006_school_privacy_audit_contract.sql \\
+            supabase/tests/0007_webhook_inbox_lifecycle_contract.sql
           do
             echo "=== $test_file ==="
             psql "$db_url" -v ON_ERROR_STOP=1 -f "$test_file"
@@ -100,6 +101,15 @@ jobs:
           db_url="$(grep '^DB_URL=' /tmp/supabase-local.env | head -n1 | cut -d= -f2- | tr -d '"')"
           test -n "$db_url"
           DB_URL="$db_url" bash supabase/tests/runtime_payment_idempotency.sh
+
+      - name: Exécuter les tests runtime du cycle webhook
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase status -o env > /tmp/supabase-local.env
+          db_url="$(grep '^DB_URL=' /tmp/supabase-local.env | head -n1 | cut -d= -f2- | tr -d '"')"
+          test -n "$db_url"
+          DB_URL="$db_url" bash supabase/tests/runtime_webhook_inbox_lifecycle.sh
 
       - name: Exécuter les tests runtime d’isolation multi-écoles
         shell: bash
