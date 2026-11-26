@@ -73,14 +73,14 @@ begin
     raise exception 'INVALID_LEASE_SECONDS' using errcode = '22023';
   end if;
 
-  update public.payment_webhook_events
+  update public.payment_webhook_events as e
   set processing_status = 'dead_letter',
       last_error_code = 'LEASE_EXPIRED_RETRY_LIMIT',
       lease_owner = null, lease_token = null, lease_expires_at = null,
       updated_at = now()
-  where processing_status = 'processing'
-    and lease_expires_at <= now()
-    and processing_attempts >= max_attempts;
+  where e.processing_status = 'processing'
+    and e.lease_expires_at <= now()
+    and e.processing_attempts >= e.max_attempts;
 
   return query
   with candidates as (
