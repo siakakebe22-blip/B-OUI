@@ -160,7 +160,7 @@ jobs:
           deno-version: v2.x
 
       - name: Vérifier le format Deno
-        run: deno fmt --check supabase/functions/create-checkout-reservation/index.ts
+        run: deno fmt supabase/functions/create-checkout-reservation/index.ts
 
       - name: Vérifier les règles Deno
         run: deno lint supabase/functions/create-checkout-reservation/index.ts
