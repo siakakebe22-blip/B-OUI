@@ -23,7 +23,7 @@ Dans les deux cas, le nom et le téléphone au format international E.164 sont o
 La migration ajoute `create_checkout_reservation(jsonb,uuid,text,text,text,integer)` sans modifier ni supprimer l'ancienne fonction `create_reservation`. Elle est appelable par anon et authenticated ; elle ne donne pas de droits de lecture directs sur les réservations.
 
 Le parcours invité nécessite encore, avant exposition publique :
-1. une protection anti-abus et anti-robot au niveau edge/API (limitation par IP/téléphone, challenge adapté, quotas) ;
+1. une Edge Function/backend public qui applique une protection anti-abus et anti-robot (limitation par IP/téléphone, challenge adapté, quotas), valide l'identité de session et appelle le RPC avec le rôle service_role ;
 2. une politique de conservation et de minimisation des données personnelles ;
 3. un parcours sécurisé de consultation/récupération de réservation et de billet, avec vérification OTP et réponses ne révélant pas l'existence d'une commande ;
 4. une couche backend pour créer les paiements et communiquer avec le fournisseur ;
