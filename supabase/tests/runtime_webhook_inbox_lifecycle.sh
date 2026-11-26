@@ -40,7 +40,19 @@ psql "$DB_URL" -X -v ON_ERROR_STOP=1 -q -c "
   set lease_expires_at = now() - interval '1 second'
   where id = '$event_id'::uuid;
 "
-echo "Étape 3 : reprise après expiration"
+echo "Étape 3 : rejet du worker après expiration, avant toute reprise"
+if psql "$DB_URL" -X -v ON_ERROR_STOP=1 -q -c "
+  set role service_role;
+  select public.finish_payment_webhook_event(
+    '$event_id'::uuid, '$first_token'::uuid, 'processed', 'STALE', null, false
+  );
+  reset role;
+" >/dev/null 2>&1; then
+  echo "ERREUR : un worker expiré a pu terminer l'événement" >&2
+  exit 1
+fi
+
+echo "Étape 4 : reprise après expiration"
 reclaimed="$(claim_as '22222222-2222-4222-8222-222222222222')"
 test -n "$reclaimed"
 IFS='|' read -r reclaimed_id second_token <<< "$reclaimed"
@@ -48,7 +60,7 @@ test "$reclaimed_id" = "$event_id"
 test "$second_token" != "$first_token"
 
 # Un ancien détenteur ne peut plus accuser réception.
-echo "Étape 4 : rejet de l’ancien jeton"
+echo "Étape 5 : rejet de l’ancien jeton"
 if psql "$DB_URL" -X -v ON_ERROR_STOP=1 -q -c "
   set role service_role;
   select public.finish_payment_webhook_event(
@@ -60,7 +72,7 @@ if psql "$DB_URL" -X -v ON_ERROR_STOP=1 -q -c "
   exit 1
 fi
 
-echo "Étape 5 : clôture avec le jeton courant"
+echo "Étape 6 : clôture avec le jeton courant"
 result="$(psql "$DB_URL" -X -v ON_ERROR_STOP=1 -Atqc "
   set role service_role;
   select public.finish_payment_webhook_event(
@@ -77,7 +89,7 @@ status="$(psql "$DB_URL" -X -v ON_ERROR_STOP=1 -Atqc "
 test "$status" = "processed|true"
 
 # Vérifie retry borné puis dead-letter à la limite configurée.
-echo "Étape 6 : préparation des tentatives de reprise"
+echo "Étape 7 : préparation des tentatives de reprise"
 retry_id="$(psql "$DB_URL" -X -v ON_ERROR_STOP=1 -Atqc "
   insert into public.payment_webhook_events
     (provider, deduplication_key, event_type, payload_sha256, payload_redacted, max_attempts)
