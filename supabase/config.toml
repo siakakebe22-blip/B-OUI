@@ -1,0 +1,4 @@
+[functions.create-checkout-reservation]
+# Guest requests are allowed, so JWT validation is performed explicitly in the function.
+# Authenticated users are validated with Supabase Auth getUser(); guests require Turnstile.
+verify_jwt = false
