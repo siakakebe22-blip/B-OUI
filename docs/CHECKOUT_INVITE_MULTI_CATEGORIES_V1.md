@@ -12,7 +12,7 @@ Dans les deux cas, le nom et le téléphone au format international E.164 sont o
 
 - Une commande porte sur un seul événement.
 - Elle peut contenir plusieurs catégories de billets.
-- Quantité totale maximale : 10 billets par commande.
+- Quantité totale maximale : 10 billets par commande.\n- Durée de réservation temporaire fixe en V1 : 10 minutes.
 - Les lignes répétées d'une même catégorie sont regroupées.
 - Le montant est recalculé côté base depuis les prix actuels des catégories ; aucun prix envoyé par le navigateur n'est accepté.
 - Les quotas de toutes les catégories sont verrouillés dans l'ordre UUID croissant, contrôlés puis réservés dans la même transaction.
