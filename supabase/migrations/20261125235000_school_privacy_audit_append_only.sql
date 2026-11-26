@@ -6,7 +6,7 @@ begin;
 -- RLS filtre les lignes, pas les colonnes : les coordonnées de contact ne doivent
 -- jamais être exposées par le SELECT public de la table schools.
 revoke select on table public.schools from anon, authenticated;
-grant select (id, name, slug, city) on table public.schools to anon, authenticated;
+grant select (id, name, slug, city, status) on table public.schools to anon, authenticated;
 
 create or replace view public.school_directory
 with (security_invoker = true)
