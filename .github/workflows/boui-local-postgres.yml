@@ -1,0 +1,135 @@
+name: B-OUI — tests PostgreSQL locaux
+
+on:
+  push:
+    branches:
+      - feature/fondations-techniques-v1
+      - feature/webhook-inbox-lifecycle-v1
+    paths:
+      - 'supabase/**'
+      - 'docs/patches/RESERVATION_HARDENING_0005.sql'
+      - '.github/workflows/boui-local-postgres.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reservation-hardening:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v6
+
+      - name: Installer Supabase CLI
+        uses: supabase/setup-cli@v3
+        with:
+          version: 3.4.0
+
+      - name: Initialiser la configuration locale
+        run: |
+          if [ ! -f supabase/config.toml ] && [ ! -f supabase/config.json ] && [ ! -f supabase/config.jsonc ]; then
+            supabase init
+          fi
+
+      - name: Sélectionner la migration de durcissement
+        id: migration
+        shell: bash
+        run: |
+          set -euo pipefail
+          migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_reservation_hardening.sql' -print | sort | tail -n1)"
+          if [ -z "$migration_file" ]; then
+            supabase migration new reservation_hardening
+            migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_reservation_hardening.sql' -print | sort | tail -n1)"
+            test -n "$migration_file"
+            cp docs/patches/RESERVATION_HARDENING_0005.sql "$migration_file"
+            echo "Migration temporaire créée par le CLI officiel : $migration_file"
+          else
+            cmp -s docs/patches/RESERVATION_HARDENING_0005.sql "$migration_file" || {
+              echo "ERREUR : le patch diffère de la migration versionnée. Créer une nouvelle migration, ne pas réécrire l'historique."
+              exit 1
+            }
+            echo "Migration versionnée vérifiée : $migration_file"
+          fi
+          echo "path=$migration_file" >> "$GITHUB_OUTPUT"
+
+      - name: Démarrer la pile Supabase locale
+        run: supabase start
+
+      - name: Recréer la base locale depuis toutes les migrations
+        run: supabase db reset
+
+      - name: Installer le client PostgreSQL
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Exécuter les contrats SQL sur PostgreSQL local
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase status -o env > /tmp/supabase-local.env
+          db_url="$(grep '^DB_URL=' /tmp/supabase-local.env | head -n1 | cut -d= -f2- | tr -d '"')"
+          test -n "$db_url"
+          for test_file in \
+            supabase/tests/0001_schema_contract.sql \
+            supabase/tests/0002_reservation_security.sql \
+            supabase/tests/0003_payment_issuance_security.sql \
+            supabase/tests/0004_webhook_inbox_security.sql \
+            supabase/tests/0005_reservation_hardening_contract.sql \
+            supabase/tests/0006_school_privacy_audit_contract.sql \
+            supabase/tests/0007_webhook_inbox_lifecycle_contract.sql \
+            supabase/tests/0008_webhook_lease_expiry_contract.sql
+          do
+            echo "=== $test_file ==="
+            psql "$db_url" -v ON_ERROR_STOP=1 -f "$test_file"
+          done
+
+      - name: Exécuter les tests runtime de concurrence
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase status -o env > /tmp/supabase-local.env
+          db_url="$(grep '^DB_URL=' /tmp/supabase-local.env | head -n1 | cut -d= -f2- | tr -d '"')"
+          test -n "$db_url"
+          DB_URL="$db_url" bash supabase/tests/runtime_reservation_concurrency.sh
+
+      - name: Exécuter les tests runtime paiement et webhook
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase status -o env > /tmp/supabase-local.env
+          db_url="$(grep '^DB_URL=' /tmp/supabase-local.env | head -n1 | cut -d= -f2- | tr -d '"')"
+          test -n "$db_url"
+          DB_URL="$db_url" bash supabase/tests/runtime_payment_idempotency.sh
+
+      - name: Exécuter les tests runtime du cycle webhook
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase status -o env > /tmp/supabase-local.env
+          db_url="$(grep '^DB_URL=' /tmp/supabase-local.env | head -n1 | cut -d= -f2- | tr -d '"')"
+          test -n "$db_url"
+          DB_URL="$db_url" bash supabase/tests/runtime_webhook_inbox_lifecycle.sh
+
+      - name: Exécuter les tests runtime d’isolation multi-écoles
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase status -o env > /tmp/supabase-local.env
+          db_url="$(grep '^DB_URL=' /tmp/supabase-local.env | head -n1 | cut -d= -f2- | tr -d '"')"
+          test -n "$db_url"
+          DB_URL="$db_url" bash supabase/tests/runtime_tenant_isolation.sh
+
+      - name: Publier la migration générée
+        uses: actions/upload-artifact@v6
+        with:
+          name: boui-reservation-hardening-migration
+          path: ${{ steps.migration.outputs.path }}
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Arrêter la pile locale
+        if: always()
+        run: supabase stop --no-backup
