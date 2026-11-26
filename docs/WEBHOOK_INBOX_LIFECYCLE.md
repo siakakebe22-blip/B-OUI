@@ -14,7 +14,7 @@ Cette étape ajoute uniquement le mécanisme interne de prise en charge et de re
 ## Prise de bail
 `claim_payment_webhook_events` sélectionne un lot limité avec `FOR UPDATE SKIP LOCKED`, puis attribue à chaque ligne un worker, un jeton aléatoire et une date d'expiration. Un événement en cours n'est pas remis à un autre worker avant expiration de son bail. Un bail expiré est récupérable ; si le nombre maximal de tentatives est atteint, l'événement passe en `dead_letter`.
 
-Le jeton de bail est une preuve de possession à durée limitée. Un worker remplacé ne peut pas terminer un événement avec un ancien jeton.
+Le jeton de bail est une preuve de possession à durée limitée. La clôture vérifie à la fois le jeton et l'expiration réelle du bail (`clock_timestamp()`) après acquisition du verrou de ligne. Un worker expiré ne peut donc plus terminer l'événement, même si aucun autre worker ne l'a encore repris.
 
 ## Accusé de traitement et reprises
 `finish_payment_webhook_event` accepte uniquement le jeton de bail courant :
@@ -28,7 +28,7 @@ Les erreurs sont stockées sous forme de codes courts non sensibles. Aucun corps
 ## Accès
 Les fonctions sont `SECURITY DEFINER`, avec `search_path` fixé, et EXECUTE réservé à `service_role`. Les rôles `anon` et `authenticated` n'ont aucun accès à la table inbox ni aux fonctions de worker.
 
-## Limites restantes
+## Durcissement 0008\nLa migration additive `20261126010100_webhook_lease_expiry_fencing.sql` refuse désormais tout accusé de traitement après expiration du bail, même si le jeton est encore présent. Le contrat SQL 0008 et le test runtime couvrent le rejet avant reprise par un second worker. La migration 0007 reste intacte.\n\n## Limites restantes
 - L'authentification cryptographique de la notification reste dépendante du contrat officiel de chaque opérateur.
 - Le worker HTTP, l'accusé HTTP attendu, la supervision/alerte, le rapprochement fournisseur et la politique de rétention doivent être développés séparément.
 - Une transaction métier réussie et l'accusé de l'inbox doivent être coordonnés de manière idempotente par l'orchestrateur serveur. La fonction SQL d'inbox seule ne prouve pas le paiement et n'émet aucun billet.
