@@ -10,7 +10,7 @@ Serve as the only public HTTP entry point for the private SQL RPC
 - Header: `x-idempotency-key` (UUID).
 - Body: `items` (1–10 category lines), `buyer_name`, `buyer_phone` (E.164),
   optional `buyer_email`.
-- Guest only: `turnstile_token`.
+- Guest only: `turnstile_token` from a Turnstile widget configured with action `boui_checkout_guest`.
 - Authenticated: `Authorization: Bearer <access-token>`; the function validates
   it with Supabase Auth and derives the buyer UUID from the verified user, never
   from request JSON.
@@ -29,7 +29,7 @@ Git repository, or build-time public variables.
 ## Security behavior
 - Exact origin allowlist; no wildcard CORS.
 - POST only; bounded request size; strict input validation.
-- Guest requests fail closed if Turnstile is not configured or verification fails.
+- Guest requests fail closed if Turnstile is not configured or verification fails; returned hostname must match the allowed request origin and action must equal `boui_checkout_guest`.
 - Authenticated buyer identity comes only from a validated access token.
 - Server derives all prices and passes a fixed 10-minute hold to the SQL function.
 - Service-role RPC call is server-side only.
