@@ -15,6 +15,11 @@ begin
     raise exception 'Une coordonnée privée reste lisible par un rôle client';
   end if;
 
+  if not has_column_privilege('anon', 'public.schools', 'status', 'SELECT')
+     or not has_column_privilege('authenticated', 'public.schools', 'status', 'SELECT') then
+    raise exception 'La colonne status doit être lisible pour filtrer l’annuaire sécurisé';
+  end if;
+
   if not has_table_privilege('anon', 'public.school_directory', 'SELECT')
      or not has_table_privilege('authenticated', 'public.school_directory', 'SELECT') then
     raise exception 'L''annuaire public des écoles n''est pas accessible';
