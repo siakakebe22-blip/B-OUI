@@ -1,3 +1,5 @@
+project_id = "boui-local"
+
 [functions.create-checkout-reservation]
 # Guest requests are allowed, so JWT validation is performed explicitly in the function.
 # Authenticated users are validated with Supabase Auth getUser(); guests require Turnstile.
