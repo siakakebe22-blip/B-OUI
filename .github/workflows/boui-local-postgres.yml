@@ -165,5 +165,8 @@ jobs:
       - name: Vérifier les règles Deno
         run: deno lint supabase/functions/create-checkout-reservation/index.ts
 
+      - name: Tester les validateurs checkout
+        run: deno test supabase/functions/create-checkout-reservation/validation_test.ts
+
       - name: Vérifier les types de l'Edge Function
         run: deno check supabase/functions/create-checkout-reservation/index.ts
