@@ -85,8 +85,8 @@ done
 membership_count="$(psql "$DB_URL" -X -v ON_ERROR_STOP=1 -Atq <<'SQL'
 begin;
 set local role authenticated;
-select set_config('request.jwt.claim.sub','11000000-0000-4000-8000-000000000001',true);
-select set_config('request.jwt.claims','{"sub":"11000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
+select set_config('request.jwt.claim.sub','11000000-0000-4000-8000-000000000001',true) \\gset
+select set_config('request.jwt.claims','{"sub":"11000000-0000-4000-8000-000000000001","role":"authenticated"}',true) \\gset
 select count(*) from public.school_members;
 rollback;
 SQL
@@ -97,8 +97,8 @@ SQL
 private_count="$(psql "$DB_URL" -X -v ON_ERROR_STOP=1 -Atq <<'SQL'
 begin;
 set local role authenticated;
-select set_config('request.jwt.claim.sub','11000000-0000-4000-8000-000000000001',true);
-select set_config('request.jwt.claims','{"sub":"11000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
+select set_config('request.jwt.claim.sub','11000000-0000-4000-8000-000000000001',true) \\gset
+select set_config('request.jwt.claims','{"sub":"11000000-0000-4000-8000-000000000001","role":"authenticated"}',true) \\gset
 select count(*) from public.school_directory where id='21000000-0000-4000-8000-000000000002';
 rollback;
 SQL
