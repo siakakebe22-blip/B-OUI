@@ -42,10 +42,10 @@ begin
      or p_buyer_name is null
      or length(trim(p_buyer_name)) not between 2 and 160
      or p_buyer_phone is null
-     or p_buyer_phone !~ '^\\+[1-9][0-9]{7,14}$'
+     or p_buyer_phone !~ '^\+[1-9][0-9]{7,14}$'
      or (p_buyer_email is not null and
          (length(trim(p_buyer_email)) > 254 or
-          trim(p_buyer_email) !~* '^[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}$'))
+          trim(p_buyer_email) !~* '^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$'))
      or p_hold_minutes is null or p_hold_minutes < 1 or p_hold_minutes > 20 then
     raise exception 'INVALID_CHECKOUT_INPUT' using errcode = '22023';
   end if;
