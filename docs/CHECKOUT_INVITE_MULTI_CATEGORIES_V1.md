@@ -12,7 +12,8 @@ Dans les deux cas, le nom et le téléphone au format international E.164 sont o
 
 - Une commande porte sur un seul événement.
 - Elle peut contenir plusieurs catégories de billets.
-- Quantité totale maximale : 10 billets par commande.\n- Durée de réservation temporaire fixe en V1 : 10 minutes.
+- Quantité totale maximale : 10 billets par commande.
+- Durée de réservation temporaire fixe en V1 : 10 minutes.
 - Les lignes répétées d'une même catégorie sont regroupées.
 - Le montant est recalculé côté base depuis les prix actuels des catégories ; aucun prix envoyé par le navigateur n'est accepté.
 - Les quotas de toutes les catégories sont verrouillés dans l'ordre UUID croissant, contrôlés puis réservés dans la même transaction.
@@ -20,7 +21,7 @@ Dans les deux cas, le nom et le téléphone au format international E.164 sont o
 
 ## Sécurité et limites à traiter avant lancement
 
-La migration ajoute `create_checkout_reservation(jsonb,uuid,text,text,text,integer)` sans modifier ni supprimer l'ancienne fonction `create_reservation`. Elle est appelable par anon et authenticated ; elle ne donne pas de droits de lecture directs sur les réservations.
+La migration ajoute `create_checkout_reservation(jsonb,uuid,uuid,text,text,text,integer)` sans modifier ni supprimer l'ancienne fonction `create_reservation`. Le RPC est exécutable uniquement par `service_role` et doit être appelé depuis une Edge Function ou un backend de confiance. Le backend doit valider lui-même le JWT de l'acheteur et transmettre son sujet vérifié comme `p_buyer_user_id` ; pour un invité, il transmet NULL. Le navigateur ne reçoit jamais la clé service_role et n'appelle jamais directement ce RPC.
 
 Le parcours invité nécessite encore, avant exposition publique :
 1. une Edge Function/backend public qui applique une protection anti-abus et anti-robot (limitation par IP/téléphone, challenge adapté, quotas), valide l'identité de session et appelle le RPC avec le rôle service_role ;
