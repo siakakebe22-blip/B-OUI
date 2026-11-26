@@ -40,7 +40,7 @@ from public.create_checkout_reservation(
  'Acheteur invité test',
  '+224620000001',
  null,
- 5
+ 10
 );
 commit;
 SQL
@@ -68,7 +68,7 @@ from public.create_checkout_reservation(
  'Acheteur invité test',
  '+224620000001',
  null,
- 5
+ 10
 );
 commit;
 SQL
@@ -89,7 +89,7 @@ select * from public.create_checkout_reservation(
  'Autre acheteur',
  '+224620000001',
  null,
- 5
+ 10
 );
 commit;
 SQL
@@ -109,7 +109,7 @@ select * from public.create_checkout_reservation(
  'Acheteur invité test',
  '+224620000001',
  null,
- 5
+ 10
 );
 commit;
 SQL
@@ -130,7 +130,7 @@ select * from public.create_checkout_reservation(
  'Acheteur connecté',
  '+224620000002',
  'connecte@example.test',
- 5
+ 10
 );
 commit;
 SQL
@@ -151,7 +151,7 @@ select * from public.create_checkout_reservation(
  'Acheteur invité test',
  '+224620000001',
  null,
- 5
+ 10
 );
 commit;
 SQL
@@ -159,4 +159,41 @@ then
   echo "ÉCHEC : limite de dix billets dépassée"; exit 1
 fi
 echo "OK — limite de quantité appliquée."
+echo "B-OUI runtime guest multi-ticket checkout tests: OK"
+
+# 7. Deux acheteurs invités concurrents ne peuvent pas réserver le dernier billet.
+reserve_guest_race() {
+  local key="$1" output="$2"
+  psql "$DB_URL" -X -v ON_ERROR_STOP=1 -Atq >"$output" 2>&1 <<SQL
+begin;
+set local role anon;
+select set_config('request.jwt.claims','{"role":"anon"}',true) \\gset
+select reservation_id
+from public.create_checkout_reservation(
+ '[{"ticket_type_id":"42000000-0000-4000-8000-000000000004","quantity":1}]'::jsonb,
+ '$key',
+ 'Acheteur course test',
+ '+224620000009',
+ null,
+ 10
+);
+commit;
+SQL
+}
+reserve_guest_race 52000000-0000-4000-8000-000000000005 "$tmp/race-a" & pid_a=$!
+reserve_guest_race 52000000-0000-4000-8000-000000000006 "$tmp/race-b" & pid_b=$!
+set +e
+wait "$pid_a"; status_a=$?
+wait "$pid_b"; status_b=$?
+set -e
+if ! { [[ "$status_a" -eq 0 && "$status_b" -ne 0 ]] || [[ "$status_b" -eq 0 && "$status_a" -ne 0 ]]; }; then
+  echo "ÉCHEC : le dernier billet invité doit être réservé exactement une fois."
+  cat "$tmp/race-a" "$tmp/race-b"; exit 1
+fi
+race_quota="$(psql "$DB_URL" -X -Atq -c "select quantity_reserved + quantity_sold from public.ticket_types where id='42000000-0000-4000-8000-000000000004'")"
+race_count="$(psql "$DB_URL" -X -Atq -c "select count(*) from public.reservations r join public.reservation_items i on i.reservation_id=r.id where i.ticket_type_id='42000000-0000-4000-8000-000000000004'")"
+[[ "$race_quota" = "1" && "$race_count" = "1" ]] || {
+  echo "ÉCHEC : concurrence checkout quota=$race_quota, réservations=$race_count"; exit 1;
+}
+echo "OK — concurrence checkout sans dépassement de quota."
 echo "B-OUI runtime guest multi-ticket checkout tests: OK"
