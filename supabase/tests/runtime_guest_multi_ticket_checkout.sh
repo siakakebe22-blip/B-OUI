@@ -85,6 +85,7 @@ set local role service_role;
 select * from public.create_checkout_reservation(
  '[{"ticket_type_id":"42000000-0000-4000-8000-000000000001","quantity":2},{"ticket_type_id":"42000000-0000-4000-8000-000000000002","quantity":1}]'::jsonb,
  '52000000-0000-4000-8000-000000000001',
+ null,
  'Autre acheteur',
  '+224620000001',
  null,
@@ -120,7 +121,7 @@ echo "OK — panier limité à un événement."
 # 5. L'acheteur connecté est correctement rattaché à son profil.
 psql "$DB_URL" -X -v ON_ERROR_STOP=1 -q <<'SQL'
 begin;
-set local role authenticated;
+set local role service_role;
 select * from public.create_checkout_reservation(
  '[{"ticket_type_id":"42000000-0000-4000-8000-000000000001","quantity":1}]'::jsonb,
  '52000000-0000-4000-8000-000000000003',
@@ -164,7 +165,6 @@ reserve_guest_race() {
   psql "$DB_URL" -X -v ON_ERROR_STOP=1 -Atq >"$output" 2>&1 <<SQL
 begin;
 set local role service_role;
-select set_config('request.jwt.claims','{"role":"anon"}',true) \\gset
 select reservation_id
 from public.create_checkout_reservation(
  '[{"ticket_type_id":"42000000-0000-4000-8000-000000000004","quantity":1}]'::jsonb,
