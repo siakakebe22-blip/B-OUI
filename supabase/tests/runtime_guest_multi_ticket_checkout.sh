@@ -31,12 +31,12 @@ SQL
 # 1. Achat invité avec deux catégories, sans création de compte.
 guest_result="$(psql "$DB_URL" -X -v ON_ERROR_STOP=1 -Atq <<'SQL'
 begin;
-set local role anon;
-select set_config('request.jwt.claims','{"role":"anon"}',true) \gset
+set local role service_role;
 select reservation_id || '|' || total_amount_gnf || '|' || was_existing
 from public.create_checkout_reservation(
  '[{"ticket_type_id":"42000000-0000-4000-8000-000000000001","quantity":2},{"ticket_type_id":"42000000-0000-4000-8000-000000000002","quantity":1}]'::jsonb,
  '52000000-0000-4000-8000-000000000001',
+ null,
  'Acheteur invité test',
  '+224620000001',
  null,
@@ -59,12 +59,12 @@ echo "OK — achat invité multi-catégories."
 # 2. Même clé et même contenu : même réservation, sans nouveau quota.
 replay="$(psql "$DB_URL" -X -v ON_ERROR_STOP=1 -Atq <<'SQL'
 begin;
-set local role anon;
-select set_config('request.jwt.claims','{"role":"anon"}',true) \gset
+set local role service_role;
 select was_existing
 from public.create_checkout_reservation(
  '[{"ticket_type_id":"42000000-0000-4000-8000-000000000001","quantity":2},{"ticket_type_id":"42000000-0000-4000-8000-000000000002","quantity":1}]'::jsonb,
  '52000000-0000-4000-8000-000000000001',
+ null,
  'Acheteur invité test',
  '+224620000001',
  null,
@@ -81,8 +81,7 @@ echo "OK — idempotence et absence de double réservation."
 # 3. La même clé avec une identité différente doit échouer.
 if psql "$DB_URL" -X -v ON_ERROR_STOP=1 -q <<'SQL' >/dev/null 2>&1
 begin;
-set local role anon;
-select set_config('request.jwt.claims','{"role":"anon"}',true) \gset
+set local role service_role;
 select * from public.create_checkout_reservation(
  '[{"ticket_type_id":"42000000-0000-4000-8000-000000000001","quantity":2},{"ticket_type_id":"42000000-0000-4000-8000-000000000002","quantity":1}]'::jsonb,
  '52000000-0000-4000-8000-000000000001',
@@ -101,11 +100,11 @@ echo "OK — conflit d'idempotence refusé."
 # 4. Une commande ne peut pas mélanger plusieurs événements.
 if psql "$DB_URL" -X -v ON_ERROR_STOP=1 -q <<'SQL' >/dev/null 2>&1
 begin;
-set local role anon;
-select set_config('request.jwt.claims','{"role":"anon"}',true) \gset
+set local role service_role;
 select * from public.create_checkout_reservation(
  '[{"ticket_type_id":"42000000-0000-4000-8000-000000000001","quantity":1},{"ticket_type_id":"42000000-0000-4000-8000-000000000003","quantity":1}]'::jsonb,
  '52000000-0000-4000-8000-000000000002',
+ null,
  'Acheteur invité test',
  '+224620000001',
  null,
@@ -122,11 +121,10 @@ echo "OK — panier limité à un événement."
 psql "$DB_URL" -X -v ON_ERROR_STOP=1 -q <<'SQL'
 begin;
 set local role authenticated;
-select set_config('request.jwt.claim.sub','12000000-0000-4000-8000-000000000001',true) \gset
-select set_config('request.jwt.claims','{"sub":"12000000-0000-4000-8000-000000000001","role":"authenticated"}',true) \gset
 select * from public.create_checkout_reservation(
  '[{"ticket_type_id":"42000000-0000-4000-8000-000000000001","quantity":1}]'::jsonb,
  '52000000-0000-4000-8000-000000000003',
+ '12000000-0000-4000-8000-000000000001',
  'Acheteur connecté',
  '+224620000002',
  'connecte@example.test',
@@ -143,11 +141,11 @@ echo "OK — achat avec compte."
 # 6. Le total de la commande est plafonné à dix billets.
 if psql "$DB_URL" -X -v ON_ERROR_STOP=1 -q <<'SQL' >/dev/null 2>&1
 begin;
-set local role anon;
-select set_config('request.jwt.claims','{"role":"anon"}',true) \gset
+set local role service_role;
 select * from public.create_checkout_reservation(
  '[{"ticket_type_id":"42000000-0000-4000-8000-000000000001","quantity":10},{"ticket_type_id":"42000000-0000-4000-8000-000000000002","quantity":1}]'::jsonb,
  '52000000-0000-4000-8000-000000000004',
+ null,
  'Acheteur invité test',
  '+224620000001',
  null,
@@ -165,7 +163,7 @@ reserve_guest_race() {
   local key="$1" output="$2"
   psql "$DB_URL" -X -v ON_ERROR_STOP=1 -Atq >"$output" 2>&1 <<SQL
 begin;
-set local role anon;
+set local role service_role;
 select set_config('request.jwt.claims','{"role":"anon"}',true) \\gset
 select reservation_id
 from public.create_checkout_reservation(
