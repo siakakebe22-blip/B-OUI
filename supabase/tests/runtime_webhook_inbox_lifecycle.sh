@@ -1,3 +1,4 @@
+# Déclenche la recette PostgreSQL locale sur la branche dédiée.
 #!/usr/bin/env bash
 set -euo pipefail
 : "${DB_URL:?DB_URL doit pointer vers PostgreSQL local}"
