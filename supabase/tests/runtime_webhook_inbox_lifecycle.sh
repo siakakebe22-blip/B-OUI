@@ -85,7 +85,7 @@ retry_id="$(psql "$DB_URL" -X -v ON_ERROR_STOP=1 -Atqc "
           'payment.status', decode(repeat('b',64),'hex'), '{}'::jsonb, 2)
   returning id
 ")"
-retry_claim="$(psql "$DB_URL" -X -v ON_ERROR_STOP=1 -AtF '|' -c "
+retry_claim="$(psql "$DB_URL" -X -q -v ON_ERROR_STOP=1 -AtF '|' -c "
   set role service_role;
   select event_id::text || '|' || lease_token::text
   from public.claim_payment_webhook_events('33333333-3333-4333-8333-333333333333'::uuid,10,30)
@@ -109,7 +109,7 @@ psql "$DB_URL" -X -v ON_ERROR_STOP=1 -q -c "
   set next_attempt_at = now()
   where id = '$retry_id'::uuid;
 "
-retry_claim2="$(psql "$DB_URL" -X -v ON_ERROR_STOP=1 -AtF '|' -c "
+retry_claim2="$(psql "$DB_URL" -X -q -v ON_ERROR_STOP=1 -AtF '|' -c "
   set role service_role;
   select event_id::text || '|' || lease_token::text
   from public.claim_payment_webhook_events('44444444-4444-4444-8444-444444444444'::uuid,10,30)
