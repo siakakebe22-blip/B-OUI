@@ -23,8 +23,14 @@ begin
     raise exception 'Contrôles de sécurité du checkout incomplets';
   end if;
 
-  if has_function_privilege('public',
-      'public.create_checkout_reservation(jsonb,uuid,text,text,text,integer)', 'EXECUTE') then
+  if exists (
+    select 1
+    from pg_proc p
+    cross join lateral aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) a
+    where p.oid = 'public.create_checkout_reservation(jsonb,uuid,text,text,text,integer)'::regprocedure
+      and a.grantee = 0
+      and a.privilege_type = 'EXECUTE'
+  ) then
     raise exception 'PUBLIC ne doit pas pouvoir exécuter le checkout';
   end if;
   if not has_function_privilege('anon',
