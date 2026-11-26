@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feature/fondations-techniques-v1
+      - feature/webhook-inbox-lifecycle-v1
     paths:
       - 'supabase/**'
       - 'docs/patches/RESERVATION_HARDENING_0005.sql'
@@ -77,7 +78,7 @@ jobs:
             supabase/tests/0003_payment_issuance_security.sql \
             supabase/tests/0004_webhook_inbox_security.sql \
             supabase/tests/0005_reservation_hardening_contract.sql \
-            supabase/tests/0006_school_privacy_audit_contract.sql \\
+            supabase/tests/0006_school_privacy_audit_contract.sql \
             supabase/tests/0007_webhook_inbox_lifecycle_contract.sql
           do
             echo "=== $test_file ==="
