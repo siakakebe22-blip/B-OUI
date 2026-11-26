@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { cleanText, isUuid } from "./validation.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info, x-idempotency-key, x-supabase-api-version",
@@ -13,17 +14,6 @@ function json(status: number, payload: Record<string, unknown>, origin: string |
   const headers = new Headers(corsHeaders);
   if (origin && allowed.has(origin)) headers.set("Access-Control-Allow-Origin", origin);
   return new Response(JSON.stringify(payload), { status, headers });
-}
-
-function isUuid(value: unknown): value is string {
-  return typeof value === "string" &&
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
-}
-
-function cleanText(value: unknown, max: number): string | null {
-  if (typeof value !== "string") return null;
-  const result = value.trim();
-  return result.length > 0 && result.length <= max ? result : null;
 }
 
 Deno.serve(async (request: Request) => {
