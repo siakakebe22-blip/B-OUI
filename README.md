@@ -2,23 +2,34 @@
 
 Billetterie des événements scolaires en Guinée.
 
-## État du dépôt
-La branche `feature/fondations-techniques-v1` contient les premiers documents de cadrage technique et les migrations PostgreSQL de fondation.
+## État actuel
 
-- `docs/ARCHITECTURE.md` : architecture cible, flux, sécurité et ordre de livraison.
-- `supabase/migrations/0001_core_schema.sql` : tables, contraintes, index et activation RLS.
-- `supabase/migrations/0002_atomic_reservations.sql` : réservation transactionnelle, idempotence et expiration initiale.
-- `supabase/migrations/0003_verified_payment_and_ticket_issuance.sql` : confirmation privée d'un paiement préalablement vérifié par le backend, conversion atomique des quotas, émission idempotente et audit.
-- `supabase/migrations/0004_webhook_inbox_and_expiration_locking.sql` : inbox privée de notifications, déduplication persistante et expiration avec verrous ordonnés et contrôle strict des quotas.
-- `supabase/tests/0001_schema_contract.sql`, `0002_reservation_security.sql`, `0003_payment_issuance_security.sql` et `0004_webhook_inbox_security.sql` : contrats structurels et permissions.
+Le dépôt contient une première fondation PostgreSQL, un flux de réservation transactionnel et un point d'entrée serveur en préparation pour le checkout invité et connecté.
 
-## Attention
-Ces migrations sont une base de travail, pas une version certifiée production. Elles n'ont pas été exécutées contre PostgreSQL/Supabase dans cette livraison et ne doivent pas être appliquées à une base de production. Les contrats SQL ne remplacent pas les tests d'intégration et de concurrence sur une instance PostgreSQL de test.
+- Interface publique de démonstration : https://b-oui.pages.dev
+- Architecture cible : `docs/ARCHITECTURE.md`
+- Contrat de checkout invité / panier multi-catégories : `docs/CHECKOUT_INVITE_MULTI_CATEGORIES_V1.md`
+- Edge Function checkout : `supabase/functions/create-checkout-reservation/index.ts`
+- Validateurs et tests Deno : `supabase/functions/create-checkout-reservation/validation.ts` et `validation_test.ts`
+- Configuration locale : `supabase/config.toml`
+- Configuration et prérequis du checkout : `docs/CHECKOUT_EDGE_FUNCTION_V1.md`
+- Contrat d'intégration Orange Money Guinée : `docs/ORANGE_MONEY_GN_INTEGRATION_CONTRACT.md`
 
-La migration 0004 ajoute le stockage dédupliqué des notifications et corrige la stratégie de verrouillage de l'expiration. Elle ne vérifie pas elle-même les signatures du prestataire : le backend doit authentifier la notification avant son insertion, utiliser une clé de déduplication stable conforme à la documentation officielle, puis rapprocher les données métier avant d'appeler la confirmation SQL.
+## Sécurité du checkout
 
-L'adaptateur Orange Money Guinée reste à concevoir à partir de la documentation officielle du produit marchand en Guinée et de son environnement sandbox. Aucun endpoint, en-tête, format de signature ou statut fournisseur n'est supposé dans ce dépôt. Les fonctions de scan et de récupération, les tests d'intégration RLS multi-utilisateurs, de webhook et de concurrence restent à réaliser.
+Le navigateur ne reçoit jamais la clé `service_role`. Les acheteurs connectés sont identifiés à partir d'un JWT validé par Supabase Auth. Les acheteurs invités doivent fournir une preuve Cloudflare Turnstile vérifiée côté serveur. La base recalcule les prix, limite le panier à un seul événement et dix billets, réserve les quotas de manière atomique et utilise une clé d'idempotence.
 
-Aucun projet cloud, secret, compte marchand, paiement réel ou donnée réelle n'est créé ici.
+La création d'une réservation ne crée pas de paiement et n'émet aucun billet. Les billets et QR codes ne peuvent être émis qu'après confirmation serveur d'un paiement réellement vérifié.
 
-- `docs/ORANGE_MONEY_GN_INTEGRATION_CONTRACT.md` : contrat interne fournisseur-neutre, éléments officiels confirmés, questions à Orange Guinée, pipeline webhook et matrice de tests sandbox. Aucun endpoint ni mécanisme cryptographique fournisseur n'est supposé.
+## Tests
+
+Les migrations et contrats SQL sont exécutés sur une instance Supabase/PostgreSQL locale éphémère dans GitHub Actions. Les tests runtime couvrent les réservations concurrentes, l'idempotence des paiements, le cycle des webhooks, le checkout invité/multi-catégories et l'isolation entre écoles. Deno vérifie le formatage, le lint, les validateurs et les types de l'Edge Function.
+
+## Limites avant lancement
+
+- L'Edge Function n'est pas déployée et ses secrets ne sont pas configurés.
+- Une limitation de débit persistante et des tests d'intégration Edge Runtime restent obligatoires avant exposition publique.
+- L'adaptateur réseau Orange Money Guinée dépend de la documentation officielle du contrat marchand et de son sandbox.
+- Aucun paiement réel, aucune migration distante et aucune donnée de production ne sont activés par les tests locaux.
+
+Ce dépôt décrit une base en développement, pas une plateforme certifiée prête pour les transactions commerciales.
