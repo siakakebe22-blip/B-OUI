@@ -4,6 +4,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-idempotency-key",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Content-Type": "application/json; charset=utf-8",
+  "Cache-Control": "no-store",
+  "X-Content-Type-Options": "nosniff",
   "Vary": "Origin",
 };
 
@@ -38,6 +40,10 @@ Deno.serve(async (request: Request) => {
   }
   if (request.method !== "POST") return json(405, { error: "METHOD_NOT_ALLOWED" }, origin, allowed);
   if (!origin || !allowed.has(origin)) return json(403, { error: "ORIGIN_NOT_ALLOWED" }, origin, allowed);
+
+  if (!request.headers.get("content-type")?.toLowerCase().startsWith("application/json")) {
+    return json(415, { error: "UNSUPPORTED_MEDIA_TYPE" }, origin, allowed);
+  }
 
   const contentLength = Number(request.headers.get("content-length") ?? "0");
   if (contentLength > 16_384) return json(413, { error: "REQUEST_TOO_LARGE" }, origin, allowed);
@@ -106,11 +112,9 @@ Deno.serve(async (request: Request) => {
     if (!turnstileSecret || !turnstileToken) {
       return json(503, { error: "GUEST_CHECKOUT_PROTECTION_UNAVAILABLE" }, origin, allowed);
     }
-    const forwardedFor = request.headers.get("cf-connecting-ip");
     const verification = new URLSearchParams({
       secret: turnstileSecret,
       response: turnstileToken,
-      ...(forwardedFor ? { remoteip: forwardedFor } : {}),
     });
     try {
       const verifyResponse = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
@@ -119,8 +123,11 @@ Deno.serve(async (request: Request) => {
         body: verification,
         signal: AbortSignal.timeout(5000),
       });
-      const result = await verifyResponse.json();
-      if (!verifyResponse.ok || result.success !== true) {
+      const result: { success?: boolean; hostname?: string; action?: string } =
+        await verifyResponse.json();
+      const expectedHostname = new URL(origin).hostname;
+      if (!verifyResponse.ok || result.success !== true ||
+          result.hostname !== expectedHostname || result.action !== "boui_checkout_guest") {
         return json(400, { error: "ANTI_BOT_VERIFICATION_FAILED" }, origin, allowed);
       }
     } catch {
