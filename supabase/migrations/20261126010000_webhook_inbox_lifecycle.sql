@@ -73,6 +73,15 @@ begin
     raise exception 'INVALID_LEASE_SECONDS' using errcode = '22023';
   end if;
 
+  update public.payment_webhook_events
+  set processing_status = 'dead_letter',
+      last_error_code = 'LEASE_EXPIRED_RETRY_LIMIT',
+      lease_owner = null, lease_token = null, lease_expires_at = null,
+      updated_at = now()
+  where processing_status = 'processing'
+    and lease_expires_at <= now()
+    and processing_attempts >= max_attempts;
+
   return query
   with candidates as (
     select e.id
@@ -126,7 +135,7 @@ begin
   if p_event_id is null or p_lease_token is null then
     raise exception 'INVALID_EVENT_LEASE' using errcode = '22023';
   end if;
-  if p_outcome not in ('processed', 'ignored', 'failed') then
+  if p_outcome is null or p_outcome not in ('processed', 'ignored', 'failed') then
     raise exception 'INVALID_WEBHOOK_OUTCOME' using errcode = '22023';
   end if;
   if p_result_code is not null and length(p_result_code) > 120 then
