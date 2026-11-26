@@ -32,7 +32,7 @@ SQL
 guest_result="$(psql "$DB_URL" -X -v ON_ERROR_STOP=1 -Atq <<'SQL'
 begin;
 set local role anon;
-select set_config('request.jwt.claims','{"role":"anon"}',true) \\gset
+select set_config('request.jwt.claims','{"role":"anon"}',true) \gset
 select reservation_id || '|' || total_amount_gnf || '|' || was_existing
 from public.create_checkout_reservation(
  '[{"ticket_type_id":"42000000-0000-4000-8000-000000000001","quantity":2},{"ticket_type_id":"42000000-0000-4000-8000-000000000002","quantity":1}]'::jsonb,
@@ -60,7 +60,7 @@ echo "OK — achat invité multi-catégories."
 replay="$(psql "$DB_URL" -X -v ON_ERROR_STOP=1 -Atq <<'SQL'
 begin;
 set local role anon;
-select set_config('request.jwt.claims','{"role":"anon"}',true) \\gset
+select set_config('request.jwt.claims','{"role":"anon"}',true) \gset
 select was_existing
 from public.create_checkout_reservation(
  '[{"ticket_type_id":"42000000-0000-4000-8000-000000000001","quantity":2},{"ticket_type_id":"42000000-0000-4000-8000-000000000002","quantity":1}]'::jsonb,
@@ -82,7 +82,7 @@ echo "OK — idempotence et absence de double réservation."
 if psql "$DB_URL" -X -v ON_ERROR_STOP=1 -q <<'SQL' >/dev/null 2>&1
 begin;
 set local role anon;
-select set_config('request.jwt.claims','{"role":"anon"}',true) \\gset
+select set_config('request.jwt.claims','{"role":"anon"}',true) \gset
 select * from public.create_checkout_reservation(
  '[{"ticket_type_id":"42000000-0000-4000-8000-000000000001","quantity":2},{"ticket_type_id":"42000000-0000-4000-8000-000000000002","quantity":1}]'::jsonb,
  '52000000-0000-4000-8000-000000000001',
@@ -102,7 +102,7 @@ echo "OK — conflit d'idempotence refusé."
 if psql "$DB_URL" -X -v ON_ERROR_STOP=1 -q <<'SQL' >/dev/null 2>&1
 begin;
 set local role anon;
-select set_config('request.jwt.claims','{"role":"anon"}',true) \\gset
+select set_config('request.jwt.claims','{"role":"anon"}',true) \gset
 select * from public.create_checkout_reservation(
  '[{"ticket_type_id":"42000000-0000-4000-8000-000000000001","quantity":1},{"ticket_type_id":"42000000-0000-4000-8000-000000000003","quantity":1}]'::jsonb,
  '52000000-0000-4000-8000-000000000002',
@@ -122,8 +122,8 @@ echo "OK — panier limité à un événement."
 psql "$DB_URL" -X -v ON_ERROR_STOP=1 -q <<'SQL'
 begin;
 set local role authenticated;
-select set_config('request.jwt.claim.sub','12000000-0000-4000-8000-000000000001',true) \\gset
-select set_config('request.jwt.claims','{"sub":"12000000-0000-4000-8000-000000000001","role":"authenticated"}',true) \\gset
+select set_config('request.jwt.claim.sub','12000000-0000-4000-8000-000000000001',true) \gset
+select set_config('request.jwt.claims','{"sub":"12000000-0000-4000-8000-000000000001","role":"authenticated"}',true) \gset
 select * from public.create_checkout_reservation(
  '[{"ticket_type_id":"42000000-0000-4000-8000-000000000001","quantity":1}]'::jsonb,
  '52000000-0000-4000-8000-000000000003',
@@ -144,7 +144,7 @@ echo "OK — achat avec compte."
 if psql "$DB_URL" -X -v ON_ERROR_STOP=1 -q <<'SQL' >/dev/null 2>&1
 begin;
 set local role anon;
-select set_config('request.jwt.claims','{"role":"anon"}',true) \\gset
+select set_config('request.jwt.claims','{"role":"anon"}',true) \gset
 select * from public.create_checkout_reservation(
  '[{"ticket_type_id":"42000000-0000-4000-8000-000000000001","quantity":10},{"ticket_type_id":"42000000-0000-4000-8000-000000000002","quantity":1}]'::jsonb,
  '52000000-0000-4000-8000-000000000004',
