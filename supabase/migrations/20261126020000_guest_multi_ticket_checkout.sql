@@ -8,6 +8,7 @@ begin;
 create or replace function public.create_checkout_reservation(
   p_items jsonb,
   p_idempotency_key uuid,
+  p_buyer_user_id uuid,
   p_buyer_name text,
   p_buyer_phone text,
   p_buyer_email text default null,
@@ -25,7 +26,7 @@ security definer
 set search_path = pg_catalog, public
 as $$
 declare
-  v_user_id uuid := auth.uid();
+  v_user_id uuid := p_buyer_user_id;
   v_normalized_items jsonb;
   v_existing_items jsonb;
   v_reservation public.reservations%rowtype;
@@ -256,9 +257,9 @@ begin
 end;
 $$;
 
-revoke all on function public.create_checkout_reservation(jsonb, uuid, text, text, text, integer)
-  from public;
-grant execute on function public.create_checkout_reservation(jsonb, uuid, text, text, text, integer)
-  to anon, authenticated, service_role;
+revoke all on function public.create_checkout_reservation(jsonb, uuid, uuid, text, text, text, integer)
+  from public, anon, authenticated;
+grant execute on function public.create_checkout_reservation(jsonb, uuid, uuid, text, text, text, integer)
+  to service_role;
 
 commit;
