@@ -45,8 +45,8 @@ reserve() {
   psql "$DB_URL" -X -v ON_ERROR_STOP=1 -Atq <<SQL
 begin;
 set local role authenticated;
-select set_config('request.jwt.claim.sub','$uid',true);
-select set_config('request.jwt.claims','{"sub":"$uid","role":"authenticated"}',true);
+select set_config('request.jwt.claim.sub','$uid',true) \gset
+select set_config('request.jwt.claims','{"sub":"$uid","role":"authenticated"}',true) \gset
 select reservation_id from public.create_reservation('$ticket',1,'$key',5);
 commit;
 SQL
@@ -71,8 +71,8 @@ for relation in reservations reservation_items payments tickets; do
   visible="$(psql "$DB_URL" -X -v ON_ERROR_STOP=1 -Atq <<SQL
 begin;
 set local role authenticated;
-select set_config('request.jwt.claim.sub','11000000-0000-4000-8000-000000000001',true);
-select set_config('request.jwt.claims','{"sub":"11000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
+select set_config('request.jwt.claim.sub','11000000-0000-4000-8000-000000000001',true) \gset
+select set_config('request.jwt.claims','{"sub":"11000000-0000-4000-8000-000000000001","role":"authenticated"}',true) \gset
 select count(*) from public.$relation t
 where t.$reservation_column = '$reservation_b';
 rollback;
