@@ -39,7 +39,6 @@ declare
 begin
   if p_idempotency_key is null
      or jsonb_typeof(p_items) is distinct from 'array'
-     or jsonb_array_length(p_items) not between 1 and 10
      or p_buyer_name is null
      or length(trim(p_buyer_name)) not between 2 and 160
      or p_buyer_phone is null
@@ -51,11 +50,22 @@ begin
     raise exception 'INVALID_CHECKOUT_INPUT' using errcode = '22023';
   end if;
 
+  if jsonb_array_length(p_items) not between 1 and 10 then
+    raise exception 'INVALID_CHECKOUT_ITEMS' using errcode = '22023';
+  end if;
+
   if exists (
     select 1
     from jsonb_array_elements(p_items) as x(item)
     where jsonb_typeof(x.item) is distinct from 'object'
-       or jsonb_typeof(x.item->'ticket_type_id') is distinct from 'string'
+  ) then
+    raise exception 'INVALID_CHECKOUT_ITEMS' using errcode = '22023';
+  end if;
+
+  if exists (
+    select 1
+    from jsonb_array_elements(p_items) as x(item)
+    where jsonb_typeof(x.item->'ticket_type_id') is distinct from 'string'
        or (x.item->>'ticket_type_id') !~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
        or jsonb_typeof(x.item->'quantity') is distinct from 'number'
        or (x.item->>'quantity') !~ '^[0-9]+$'
@@ -237,6 +247,6 @@ $$;
 revoke all on function public.create_checkout_reservation(jsonb, uuid, text, text, text, integer)
   from public;
 grant execute on function public.create_checkout_reservation(jsonb, uuid, text, text, text, integer)
-  to anon, authenticated;
+  to anon, authenticated, service_role;
 
 commit;
