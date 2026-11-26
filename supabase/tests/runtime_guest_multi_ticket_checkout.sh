@@ -169,6 +169,7 @@ select reservation_id
 from public.create_checkout_reservation(
  '[{"ticket_type_id":"42000000-0000-4000-8000-000000000004","quantity":1}]'::jsonb,
  '$key',
+ null,
  'Acheteur course test',
  '+224620000009',
  null,
