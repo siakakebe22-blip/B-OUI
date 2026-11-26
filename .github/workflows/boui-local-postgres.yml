@@ -56,8 +56,8 @@ jobs:
           fi
           echo "path=$migration_file" >> "$GITHUB_OUTPUT"
 
-      - name: Démarrer la pile Supabase locale
-        run: supabase start
+      - name: Démarrer la pile Supabase locale (sans Inbucket)
+        run: supabase start -x inbucket
 
       - name: Recréer la base locale depuis toutes les migrations
         run: supabase db reset
