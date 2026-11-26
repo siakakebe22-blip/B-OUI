@@ -13,7 +13,7 @@ event_id="$(psql "$DB_URL" -X -v ON_ERROR_STOP=1 -Atqc "
 
 claim_as() {
   local worker="$1"
-  psql "$DB_URL" -X -v ON_ERROR_STOP=1 -AtF '|' -c "
+  psql "$DB_URL" -X -q -v ON_ERROR_STOP=1 -AtF '|' -c "
     set role service_role;
     select event_id::text || '|' || lease_token::text
     from public.claim_payment_webhook_events('$worker'::uuid, 10, 30)
