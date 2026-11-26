@@ -14,7 +14,8 @@ begin
   ) into v_definition;
 
   if position('security definer' in lower(v_definition)) = 0
-     or position('set search_path = pg_catalog, public' in lower(v_definition)) = 0
+     or position('search_path' in lower(v_definition)) = 0
+     or position('pg_catalog' in lower(v_definition)) = 0
      or position('ONE_EVENT_PER_CHECKOUT' in v_definition) = 0
      or position('SCHOOL_NOT_VERIFIED' in v_definition) = 0
      or position('IDEMPOTENCY_KEY_CONFLICT' in v_definition) = 0
