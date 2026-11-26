@@ -1,7 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
-  "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-idempotency-key",
+  "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info, x-idempotency-key, x-supabase-api-version",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Content-Type": "application/json; charset=utf-8",
   "Cache-Control": "no-store",
@@ -157,7 +157,14 @@ Deno.serve(async (request: Request) => {
     ]);
     const message = error.message ?? "";
     const code = [...known].find((value) => message.includes(value));
-    if (code) return json(409, { error: code }, origin, allowed);
+    if (code) {
+      const status = code.startsWith("INVALID_") || code === "CHECKOUT_QUANTITY_LIMIT"
+        ? 400
+        : code === "PROFILE_REQUIRED"
+        ? 403
+        : 409;
+      return json(status, { error: code }, origin, allowed);
+    }
     // Ne jamais exposer les détails PostgreSQL ou les données internes au client.
     return json(503, { error: "CHECKOUT_TEMPORARILY_UNAVAILABLE" }, origin, allowed);
   }
