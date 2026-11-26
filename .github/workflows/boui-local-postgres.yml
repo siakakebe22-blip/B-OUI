@@ -6,6 +6,7 @@ on:
       - main
       - feature/fondations-techniques-v1
       - feature/webhook-inbox-lifecycle-v1
+      - feature/guest-multi-ticket-checkout-v1
     paths:
       - 'supabase/**'
       - 'docs/patches/RESERVATION_HARDENING_0005.sql'
