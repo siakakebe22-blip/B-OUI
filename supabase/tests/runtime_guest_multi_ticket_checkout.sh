@@ -46,7 +46,7 @@ commit;
 SQL
 )"
 IFS='|' read -r guest_id guest_total guest_existing <<<"$guest_result"
-[[ "$guest_total" = "45000" && "$guest_existing" = "f" ]] || {
+[[ "$guest_total" = "45000" && "$guest_existing" = "false" ]] || {
   echo "ÉCHEC : montant ou état initial invité incorrect : $guest_result"; exit 1;
 }
 guest_owner="$(psql "$DB_URL" -X -Atq -c "select coalesce(buyer_user_id::text,'NULL') from public.reservations where id='$guest_id'")"
@@ -73,7 +73,7 @@ from public.create_checkout_reservation(
 commit;
 SQL
 )"
-[[ "$replay" = "t" ]] || { echo "ÉCHEC : rejeu idempotent non reconnu"; exit 1; }
+[[ "$replay" = "true" ]] || { echo "ÉCHEC : rejeu idempotent non reconnu"; exit 1; }
 reserved="$(psql "$DB_URL" -X -Atq -c "select quantity_reserved from public.ticket_types where id='42000000-0000-4000-8000-000000000001'")"
 [[ "$reserved" = "2" ]] || { echo "ÉCHEC : le rejeu a modifié le quota ($reserved)"; exit 1; }
 echo "OK — idempotence et absence de double réservation."
@@ -159,7 +159,6 @@ then
   echo "ÉCHEC : limite de dix billets dépassée"; exit 1
 fi
 echo "OK — limite de quantité appliquée."
-echo "B-OUI runtime guest multi-ticket checkout tests: OK"
 
 # 7. Deux acheteurs invités concurrents ne peuvent pas réserver le dernier billet.
 reserve_guest_race() {
