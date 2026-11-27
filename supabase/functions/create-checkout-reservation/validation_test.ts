@@ -1,5 +1,5 @@
 import { assertEquals } from "jsr:@std/assert@1";
-import { cleanText, isUuid } from "./validation.ts";
+import { checkoutHttpStatus, cleanText, isUuid } from "./validation.ts";
 
 Deno.test("isUuid accepts a canonical UUID v4", () => {
   assertEquals(isUuid("550e8400-e29b-41d4-a716-446655440000"), true);
