@@ -14,6 +14,14 @@ on:
       - 'README.md'
       - 'docs/patches/RESERVATION_HARDENING_0005.sql'
       - '.github/workflows/boui-local-postgres.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'supabase/**'
+      - 'docs/**'
+      - 'README.md'
+      - '.github/workflows/boui-local-postgres.yml'
   workflow_dispatch:
 
 permissions:
