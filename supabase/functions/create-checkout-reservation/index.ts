@@ -1,5 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { cleanText, isUuid } from "./validation.ts";
+import { checkoutHttpStatus, cleanText, isUuid } from "./validation.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info, x-idempotency-key, x-supabase-api-version",
@@ -169,7 +169,7 @@ Deno.serve(async (request: Request) => {
   if (!reservation) return json(503, { error: "CHECKOUT_TEMPORARILY_UNAVAILABLE" }, origin, allowed);
 
   // Une répétition idempotente renvoie la réservation existante sans la recréer.
-  const responseStatus = reservation.was_existing === true ? 200 : 201;
+  const responseStatus = checkoutHttpStatus(reservation.was_existing === true);
   return json(responseStatus, {
     reservation_id: reservation.reservation_id,
     reference: reservation.reservation_reference,
