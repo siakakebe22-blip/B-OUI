@@ -20,7 +20,7 @@ Serve as the only public HTTP entry point for the private SQL RPC
 - `SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY` (server-side function secret only)
 - `CHECKOUT_ALLOWED_ORIGINS` (comma-separated exact HTTPS origins)
-- `TURNSTILE_SECRET_KEY` (required for guest checkout)
+- `TURNSTILE_SECRET_KEY` (required for guest checkout)\n- `CHECKOUT_RATE_LIMIT_HMAC_SECRET` (random secret of at least 32 characters; server-side only)
 
 The Cloudflare Turnstile site key belongs in the frontend public configuration.
 Do not put the Turnstile secret or Supabase service-role key in the frontend,
