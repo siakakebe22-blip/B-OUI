@@ -1,4 +1,5 @@
 import { assertEquals } from "jsr:@std/assert@1";
+// Teste le statut HTTP choisi pour une création ou un rejeu idempotent.
 import { checkoutHttpStatus, cleanText, isUuid } from "./validation.ts";
 
 Deno.test("isUuid accepts a canonical UUID v4", () => {
