@@ -8,6 +8,7 @@ on:
       - feature/webhook-inbox-lifecycle-v1
       - feature/guest-multi-ticket-checkout-v1
       - feature/checkout-edge-function-v1
+      - feature/checkout-persistent-rate-limits
     paths:
       - 'supabase/**'
       - 'docs/**'
@@ -17,6 +18,7 @@ on:
   pull_request:
     branches:
       - main
+      - fix/checkout-idempotent-http-status
     paths:
       - 'supabase/**'
       - 'docs/**'
