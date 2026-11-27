@@ -168,7 +168,9 @@ Deno.serve(async (request: Request) => {
   const reservation = Array.isArray(data) ? data[0] : null;
   if (!reservation) return json(503, { error: "CHECKOUT_TEMPORARILY_UNAVAILABLE" }, origin, allowed);
 
-  return json(201, {
+  // Une répétition idempotente renvoie la réservation existante sans la recréer.
+  const responseStatus = reservation.was_existing === true ? 200 : 201;
+  return json(responseStatus, {
     reservation_id: reservation.reservation_id,
     reference: reservation.reservation_reference,
     total_amount_gnf: reservation.total_amount_gnf,
