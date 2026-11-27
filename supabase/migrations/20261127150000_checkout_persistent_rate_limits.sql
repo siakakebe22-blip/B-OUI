@@ -12,7 +12,6 @@ create table if not exists public.checkout_rate_limits (
 
 alter table public.checkout_rate_limits enable row level security;
 revoke all on table public.checkout_rate_limits from public, anon, authenticated;
-grant select, insert, update, delete on table public.checkout_rate_limits to service_role;
 
 create or replace function public.consume_checkout_rate_limit(
   p_bucket_key text,
