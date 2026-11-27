@@ -7,9 +7,20 @@ on:
       - feature/fondations-techniques-v1
       - feature/webhook-inbox-lifecycle-v1
       - feature/guest-multi-ticket-checkout-v1
+      - feature/checkout-edge-function-v1
     paths:
       - 'supabase/**'
+      - 'docs/**'
+      - 'README.md'
       - 'docs/patches/RESERVATION_HARDENING_0005.sql'
+      - '.github/workflows/boui-local-postgres.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'supabase/**'
+      - 'docs/**'
+      - 'README.md'
       - '.github/workflows/boui-local-postgres.yml'
   workflow_dispatch:
 
@@ -145,3 +156,27 @@ jobs:
       - name: Arrêter la pile locale
         if: always()
         run: supabase stop --no-backup
+
+  checkout-edge-function:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v6
+
+      - name: Installer Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Vérifier le format Deno
+        run: deno fmt supabase/functions/create-checkout-reservation
+
+      - name: Vérifier les règles Deno
+        run: deno lint supabase/functions/create-checkout-reservation
+
+      - name: Tester les validateurs checkout
+        run: deno test supabase/functions/create-checkout-reservation/validation_test.ts
+
+      - name: Vérifier les types de l'Edge Function
+        run: deno check supabase/functions/create-checkout-reservation/index.ts
