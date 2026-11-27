@@ -8,6 +8,7 @@ on:
       - feature/webhook-inbox-lifecycle-v1
       - feature/guest-multi-ticket-checkout-v1
       - feature/checkout-edge-function-v1
+      - feature/checkout-persistent-rate-limits
     paths:
       - 'supabase/**'
       - 'docs/**'
@@ -17,6 +18,7 @@ on:
   pull_request:
     branches:
       - main
+      - fix/checkout-idempotent-http-status
     paths:
       - 'supabase/**'
       - 'docs/**'
@@ -94,7 +96,8 @@ jobs:
             supabase/tests/0006_school_privacy_audit_contract.sql \
             supabase/tests/0007_webhook_inbox_lifecycle_contract.sql \
             supabase/tests/0008_webhook_lease_expiry_contract.sql \
-            supabase/tests/0009_guest_multi_ticket_checkout_contract.sql
+            supabase/tests/0009_guest_multi_ticket_checkout_contract.sql \
+            supabase/tests/0010_checkout_rate_limits_contract.sql
           do
             echo "=== $test_file ==="
             psql "$db_url" -v ON_ERROR_STOP=1 -f "$test_file"

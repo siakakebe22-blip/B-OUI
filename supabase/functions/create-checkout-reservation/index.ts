@@ -1,8 +1,14 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { checkoutHttpStatus, cleanText, isUuid } from "./validation.ts";
+import {
+  checkoutHttpStatus,
+  checkoutRateLimitBucket,
+  checkoutRateLimitPolicies,
+  cleanText,
+  isUuid,
+} from "./validation.ts";
 
 const corsHeaders = {
-  "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info, x-idempotency-key, x-supabase-api-version",
+  "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info, x-idempotency-key, x-supabase-api-version, x-boui-device-id",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Content-Type": "application/json; charset=utf-8",
   "Cache-Control": "no-store",
@@ -10,9 +16,16 @@ const corsHeaders = {
   "Vary": "Origin",
 };
 
-function json(status: number, payload: Record<string, unknown>, origin: string | null, allowed: Set<string>) {
+function json(
+  status: number,
+  payload: Record<string, unknown>,
+  origin: string | null,
+  allowed: Set<string>,
+  extraHeaders: Record<string, string> = {},
+) {
   const headers = new Headers(corsHeaders);
   if (origin && allowed.has(origin)) headers.set("Access-Control-Allow-Origin", origin);
+  for (const [key, value] of Object.entries(extraHeaders)) headers.set(key, value);
   return new Response(JSON.stringify(payload), { status, headers });
 }
 
@@ -41,7 +54,8 @@ Deno.serve(async (request: Request) => {
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  if (!supabaseUrl || !anonKey || !serviceRoleKey) {
+  const rateLimitSecret = Deno.env.get("CHECKOUT_RATE_LIMIT_HMAC_SECRET");
+  if (!supabaseUrl || !anonKey || !serviceRoleKey || !rateLimitSecret || rateLimitSecret.length < 32) {
     return json(503, { error: "CHECKOUT_UNAVAILABLE" }, origin, allowed);
   }
 
@@ -131,9 +145,54 @@ Deno.serve(async (request: Request) => {
     }
   }
 
+  const deviceIdHeader = request.headers.get("x-boui-device-id");
+  if (deviceIdHeader && !isUuid(deviceIdHeader)) {
+    return json(400, { error: "INVALID_DEVICE_ID" }, origin, allowed);
+  }
+  // cf-connecting-ip est fiable uniquement si le déploiement passe par Cloudflare.
+  // Ne pas utiliser x-forwarded-for, qui peut être fourni par le client.
+  const trustedIp = cleanText(request.headers.get("cf-connecting-ip"), 64);
   const serviceClient = createClient(supabaseUrl, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
+
+  const ratePolicies = checkoutRateLimitPolicies({
+    phone,
+    userId: buyerUserId,
+    ip: trustedIp,
+    deviceId: deviceIdHeader,
+  });
+  for (const policy of ratePolicies) {
+    let bucketKey: string;
+    try {
+      bucketKey = await checkoutRateLimitBucket(rateLimitSecret, policy.kind, policy.value);
+    } catch {
+      return json(503, { error: "CHECKOUT_TEMPORARILY_UNAVAILABLE" }, origin, allowed);
+    }
+    const { data: limitData, error: limitError } = await serviceClient.rpc(
+      "consume_checkout_rate_limit",
+      {
+        p_bucket_key: bucketKey,
+        p_limit: policy.limit,
+        p_window_seconds: policy.windowSeconds,
+      },
+    );
+    const decision = Array.isArray(limitData) ? limitData[0] : null;
+    if (limitError || !decision) {
+      return json(503, { error: "CHECKOUT_TEMPORARILY_UNAVAILABLE" }, origin, allowed);
+    }
+    if (decision.allowed !== true) {
+      const retryAfter = Math.max(1, Number(decision.retry_after_seconds) || 60);
+      return json(
+        429,
+        { error: "CHECKOUT_RATE_LIMITED", retry_after_seconds: retryAfter },
+        origin,
+        allowed,
+        { "Retry-After": String(retryAfter) },
+      );
+    }
+  }
+
   const { data, error } = await serviceClient.rpc("create_checkout_reservation", {
     p_items: items,
     p_idempotency_key: idempotencyKey,
