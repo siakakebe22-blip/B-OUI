@@ -9,3 +9,7 @@ export function cleanText(value: unknown, max: number): string | null {
   const result = value.trim();
   return result.length > 0 && result.length <= max ? result : null;
 }
+
+export function checkoutHttpStatus(wasExisting: boolean): 200 | 201 {
+  return wasExisting ? 200 : 201;
+}
