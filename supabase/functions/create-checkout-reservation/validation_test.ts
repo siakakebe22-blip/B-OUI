@@ -21,3 +21,11 @@ Deno.test("cleanText rejects empty and non-string values", () => {
   assertEquals(cleanText(123, 20), null);
   assertEquals(cleanText(undefined, 20), null);
 });
+
+Deno.test("checkout returns 201 for a new reservation", () => {
+  assertEquals(checkoutHttpStatus(false), 201);
+});
+
+Deno.test("checkout returns 200 for an idempotent replay", () => {
+  assertEquals(checkoutHttpStatus(true), 200);
+});
